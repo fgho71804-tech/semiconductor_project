@@ -1,10 +1,10 @@
-﻿,value
-전체 샘플 수,1567.0
-전체 feature 수,590.0
-Pass 개수,1463.0
-Fail 개수,104.0
-Fail 비율(%),6.64
-결측값이 있는 feature 수,538.0
-결측률 50% 이상 feature 수,28.0
-상수 feature 수,116.0
-제거 후보 반영 후 남은 feature 수,446.0
+metric,value
+total_samples,1567.0
+total_features,590.0
+pass_count,1463.0
+fail_count,104.0
+fail_rate,0.06636885768985322
+features_with_missing,538.0
+features_missing_ge_50pct,28.0
+constant_features,116.0
+features_after_drop_candidates,446.0

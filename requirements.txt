@@ -1,8 +1,10 @@
 pandas
 numpy
 matplotlib
+scipy
 scikit-learn
 jupyterlab
 notebook
+ipykernel
 openpyxl
 missingno
