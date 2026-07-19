@@ -89,6 +89,37 @@ Step 1에서 선별한 446개 feature를 대상으로 Pass/Fail 간 표준화 �
 
 `feature_59`와 `feature_103`은 효과크기와 통계적 유의성 양쪽에서 모두 상위권이므로 우선 모니터링 후보입니다. 다만 이 분석은 단변량 연관성 분석이며, 결측 대체 방식·공정 시간 변화·feature 간 상관관계와 모델 기반 중요도를 함께 검증해야 합니다.
 
+## Step 3. Baseline Fail Prediction Result
+
+전체 데이터에서 20%를 stratified Test 세트로 분리하고, 나머지 Train 데이터에서 5-fold × 3회 반복 교차검증을 수행했습니다. 결측치 대체와 표준화는 Pipeline 안에서 각 Train fold로만 학습해 데이터 누수를 방지했습니다.
+
+| 모델 | Train CV PR-AUC | Train CV Fail Recall | Test PR-AUC (threshold 0.5) |
+|---|---:|---:|---:|
+| Random Forest (balanced) | 0.198 | 0.000 | 0.200 |
+| HistGradientBoosting (balanced) | 0.168 | 0.024 | 0.182 |
+| Logistic Regression (balanced) | 0.163 | 0.305 | 0.118 |
+| Dummy prior | 0.066 | 0.000 | 0.067 |
+
+Train CV PR-AUC가 가장 높은 Random Forest를 선택했습니다. 하지만 기본 threshold 0.5에서는 Test Fail을 검출하지 못했으므로, Test 데이터를 보지 않고 Train out-of-fold 확률만 사용해 Fail Recall 80% 이상을 만족하는 threshold를 탐색했습니다.
+
+### Selected operating point
+
+| 항목 | Test 결과 |
+|---|---:|
+| 선택 모델 | Random Forest (balanced) |
+| 선택 threshold | 0.06 |
+| Fail Recall | 85.71% |
+| Precision | 10.29% |
+| F1-score | 18.37% |
+| PR-AUC | 0.200 |
+| Balanced Accuracy | 66.07% |
+| True Positive | 18 |
+| False Negative | 3 |
+| False Positive | 157 |
+| True Negative | 136 |
+
+Fail 21건 중 18건을 검출했지만 Pass 157건을 False Alarm으로 분류했습니다. 따라서 이 operating point는 Fail 미검출을 줄이는 스크리닝 용도로는 의미가 있으나, 단독 판정 시스템으로 사용하기에는 경보 정밀도가 낮습니다. 실제 적용 시에는 후속 확인 검사, 공정 비용, 놓친 Fail의 손실을 반영해 threshold를 결정해야 합니다.
+
 ## 해석상 주의점
 
 SECOM feature 이름은 비식별화되어 있으므로 통계적으로 유의한 feature를 실제 물리 공정 원인으로 단정할 수 없습니다. 결과는 공정 엔지니어가 설비·공정 이력과 함께 추가 검증할 측정 인자 후보로 사용합니다.

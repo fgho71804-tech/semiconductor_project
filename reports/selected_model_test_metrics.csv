@@ -1,0 +1,2 @@
+model,threshold,fail_recall,precision,f1,pr_auc,balanced_accuracy,true_negative,false_positive,false_negative,true_positive
+random_forest_balanced,0.06,0.8571428571428571,0.10285714285714286,0.1836734693877551,0.2003149458846448,0.6606533398342271,136,157,3,18

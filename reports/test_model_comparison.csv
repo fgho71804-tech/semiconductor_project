@@ -1,0 +1,5 @@
+model,threshold,fail_recall,precision,f1,pr_auc,balanced_accuracy,true_negative,false_positive,false_negative,true_positive
+random_forest_balanced,0.5,0.0,0.0,0.0,0.2003149458846448,0.5,293,0,21,0
+hist_gradient_boosting_balanced,0.5,0.0,0.0,0.0,0.1821057949172862,0.49658703071672355,291,2,21,0
+logistic_balanced,0.5,0.19047619047619047,0.09523809523809523,0.12698412698412698,0.11751877299406475,0.5303916788558427,255,38,17,4
+dummy_prior,0.5,0.0,0.0,0.0,0.06687898089171974,0.5,293,0,21,0
