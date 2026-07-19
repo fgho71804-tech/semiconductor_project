@@ -31,13 +31,15 @@
 │   ├── 01_data_quality_check.ipynb
 │   ├── 02_eda_fail_pattern_analysis.ipynb
 │   ├── 03_baseline_fail_prediction.ipynb
-│   └── 04_feature_importance_and_monitoring.ipynb
+│   ├── 04_feature_importance_and_monitoring.ipynb
+│   └── 05_temporal_validation.ipynb
 ├── reports/
 │   └── step1_summary.csv
 ├── src/
 │   ├── secom_analysis.py
 │   ├── modeling.py
-│   └── interpretation.py
+│   ├── interpretation.py
+│   └── temporal_validation.py
 ├── .gitignore
 ├── README.md
 └── requirements.txt
@@ -52,7 +54,7 @@ pip install -r requirements.txt
 jupyter lab
 ```
 
-노트북은 `00` → `01` → `02` → `03` → `04` 순서로 실행합니다. 데이터 품질 진단, Fail 패턴 EDA, baseline 예측, feature 근거 교차검증과 모니터링 후보 생성 순서입니다.
+노트북은 `00` → `01` → `02` → `03` → `04` → `05` 순서로 실행합니다. 데이터 품질 진단, Fail 패턴 EDA, baseline 예측, feature 근거 교차검증, 모니터링 후보 생성, 시간순 안정성 검증 순서입니다.
 
 ## Step 1. Data Quality Check Result
 
@@ -139,6 +141,19 @@ Step 3에서 선택한 Random Forest의 Train impurity importance로 상위 30�
 그 밖에 `feature_205`, `feature_477`, `feature_130`, `feature_33`, `feature_452`, `feature_510`, `feature_103`을 복수 근거가 겹치는 모니터링 후보로 정리했습니다. 운영 데이터 가용성을 고려해 Train 결측률이 20%를 초과하는 feature는 모델 해석표에는 남기되 모니터링 후보에서는 제외했습니다.
 
 모니터링 후보 한계는 Train Pass 분포의 median과 MAD를 사용한 탐색적 범위입니다. 실제 관리도 한계·공정 spec·출하 판정 기준이 아니며, 시간순 안정성, 장비별 분포, 측정 시스템 신뢰성과 오경보 비용을 확인한 후에만 운영 기준으로 발전시킬 수 있습니다.
+
+## Step 5. Temporal Validation Result
+
+timestamp 기준 앞 80%를 Train, 뒤 20%를 미래 기간 Test로 분리했습니다. 전체 기간의 Fail 비율은 시간순 첫 20% 구간에서 14.01%였으나 마지막 20%에서는 5.41%로 변해 뚜렷한 시간 drift가 확인됐습니다.
+
+| 평가 방식 | Threshold | Fail Recall | Precision | PR-AUC | False Negative | False Positive |
+|---|---:|---:|---:|---:|---:|---:|
+| Temporal validation에서 선택 | 0.04 | 94.12% | 5.78% | 0.097 | 1 | 261 |
+| Step 3 threshold 고정 | 0.06 | 64.71% | 6.40% | 0.097 | 6 | 161 |
+
+시간순 threshold `0.04`는 미래 Fail 17건 중 16건을 검출했지만 Pass 297건 중 261건을 경보로 분류했습니다. 반면 Step 3의 threshold `0.06`을 그대로 적용하면 False Alarm은 감소하지만 Fail 6건을 놓쳤습니다. 또한 시간순 Test PR-AUC `0.097`은 무작위 stratified Test의 `0.200`보다 크게 낮았습니다.
+
+따라서 현재 모델은 시간 변화에 안정적인 자동 판정 모델로 보기 어렵습니다. 포트폴리오에서는 높은 Recall만 강조하지 않고, random split과 temporal split의 차이, threshold 불안정성, drift 모니터링과 rolling backtest 필요성을 핵심 결론으로 제시합니다.
 
 ## 해석상 주의점
 
