@@ -29,11 +29,15 @@
 ├── notebooks/
 │   ├── 00_environment_test.ipynb
 │   ├── 01_data_quality_check.ipynb
-│   └── 02_eda_fail_pattern_analysis.ipynb
+│   ├── 02_eda_fail_pattern_analysis.ipynb
+│   ├── 03_baseline_fail_prediction.ipynb
+│   └── 04_feature_importance_and_monitoring.ipynb
 ├── reports/
 │   └── step1_summary.csv
 ├── src/
-│   └── secom_analysis.py
+│   ├── secom_analysis.py
+│   ├── modeling.py
+│   └── interpretation.py
 ├── .gitignore
 ├── README.md
 └── requirements.txt
@@ -48,7 +52,7 @@ pip install -r requirements.txt
 jupyter lab
 ```
 
-노트북은 `00` → `01` → `02` 순서로 실행합니다. `01`은 Step 1 보고서 CSV를, `02`는 평균 차이와 통계 검정 기반 feature 후보 CSV를 생성합니다.
+노트북은 `00` → `01` → `02` → `03` → `04` 순서로 실행합니다. 데이터 품질 진단, Fail 패턴 EDA, baseline 예측, feature 근거 교차검증과 모니터링 후보 생성 순서입니다.
 
 ## Step 1. Data Quality Check Result
 
@@ -119,6 +123,22 @@ Train CV PR-AUC가 가장 높은 Random Forest를 선택했습니다. 하지만 
 | True Negative | 136 |
 
 Fail 21건 중 18건을 검출했지만 Pass 157건을 False Alarm으로 분류했습니다. 따라서 이 operating point는 Fail 미검출을 줄이는 스크리닝 용도로는 의미가 있으나, 단독 판정 시스템으로 사용하기에는 경보 정밀도가 낮습니다. 실제 적용 시에는 후속 확인 검사, 공정 비용, 놓친 Fail의 손실을 반영해 threshold를 결정해야 합니다.
+
+## Step 4. Feature Evidence & Monitoring Candidates
+
+Step 3에서 선택한 Random Forest의 Train impurity importance로 상위 30개 후보를 정한 뒤, Test PR-AUC 감소 기반 permutation importance를 5회 반복 계산했습니다. 이를 Step 2의 표준화 평균 차이와 FDR 보정 통계 순위와 결합했습니다.
+
+네 가지 근거가 모두 상위 20위 안에 포함된 우선 검토 후보는 다음과 같습니다.
+
+| Feature | Fail 변화 방향 | 근거 수 | 해석 |
+|---|---|---:|---|
+| `feature_59` | 증가 | 4/4 | permutation PR-AUC 감소가 가장 큰 핵심 후보 |
+| `feature_129` | 증가 | 4/4 | 모델 및 단변량 근거가 모두 일관된 후보 |
+| `feature_125` | 감소 | 4/4 | Fail에서 낮아지는 방향의 공통 후보 |
+
+그 밖에 `feature_205`, `feature_477`, `feature_130`, `feature_33`, `feature_452`, `feature_510`, `feature_103`을 복수 근거가 겹치는 모니터링 후보로 정리했습니다. 운영 데이터 가용성을 고려해 Train 결측률이 20%를 초과하는 feature는 모델 해석표에는 남기되 모니터링 후보에서는 제외했습니다.
+
+모니터링 후보 한계는 Train Pass 분포의 median과 MAD를 사용한 탐색적 범위입니다. 실제 관리도 한계·공정 spec·출하 판정 기준이 아니며, 시간순 안정성, 장비별 분포, 측정 시스템 신뢰성과 오경보 비용을 확인한 후에만 운영 기준으로 발전시킬 수 있습니다.
 
 ## 해석상 주의점
 

@@ -1,0 +1,11 @@
+feature,evidence_count,fail_shift_direction,train_pass_n,train_missing_rate,pass_median,pass_mad,candidate_lower_limit,candidate_upper_limit,limit_method,validation_status
+feature_59,4,higher,1165,0.0039904229848363925,0.8018,2.9009,-12.10082302,13.70442302,Pass median ± 3×robust sigma (MAD),engineering and temporal validation required
+feature_129,4,higher,1161,0.007182761372705506,-0.1419,0.42579999999999996,-2.0357732399999997,1.7519732399999997,Pass median ± 3×robust sigma (MAD),engineering and temporal validation required
+feature_125,4,lower,1161,0.007182761372705506,1.144,0.17909999999999993,0.3473990200000002,1.9406009799999997,Pass median ± 3×robust sigma (MAD),engineering and temporal validation required
+feature_205,3,higher,1166,0.0031923383878691143,7.66,1.7799999999999998,-0.257083999999999,15.577084,Pass median ± 3×robust sigma (MAD),engineering and temporal validation required
+feature_477,3,higher,1166,0.0031923383878691143,5.1930499999999995,1.2099999999999995,-0.18878799999999796,10.574887999999998,Pass median ± 3×robust sigma (MAD),engineering and temporal validation required
+feature_130,3,higher,1161,0.007182761372705506,0.7573,0.06430000000000002,0.47130645999999987,1.04329354,Pass median ± 3×robust sigma (MAD),engineering and temporal validation required
+feature_33,3,higher,1170,0.0,8.7696,0.2237000000000009,7.774627139999996,9.764572860000005,Pass median ± 3×robust sigma (MAD),engineering and temporal validation required
+feature_452,3,lower,1169,0.0007980845969672786,5.2765,0.5723000000000003,2.7310240599999993,7.8219759400000015,Pass median ± 3×robust sigma (MAD),engineering and temporal validation required
+feature_510,3,higher,1168,0.0015961691939345571,46.3106,13.354800000000001,-13.08887944,105.71007944,Pass median ± 3×robust sigma (MAD),engineering and temporal validation required
+feature_103,3,higher,1168,0.0015961691939345571,-0.0102,0.0017499999999999998,-0.01798365,-0.002416350000000001,Pass median ± 3×robust sigma (MAD),engineering and temporal validation required
