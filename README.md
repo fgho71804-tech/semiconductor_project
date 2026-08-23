@@ -202,6 +202,8 @@ Random Forest 자체는 LLM 토큰을 사용하지 않습니다. 위 토큰량�
 
 ![Top-20 feature budget extension](reports/feature_budget_efficiency_top20.png)
 
+Optimum 정의, One-SE 계산, 9개·11개·20개 비교, 선형성 및 운영 해석은 [상세 Optimum 분석 보고서](OPTIMUM_ANALYSIS_REPORT.md)에 정리했습니다.
+
 ## 해석상 주의점
 
 SECOM feature 이름은 비식별화되어 있으므로 통계적으로 유의한 feature를 실제 물리 공정 원인으로 단정할 수 없습니다. 결과는 공정 엔지니어가 설비·공정 이력과 함께 추가 검증할 측정 인자 후보로 사용합니다.
