@@ -32,14 +32,16 @@
 │   ├── 02_eda_fail_pattern_analysis.ipynb
 │   ├── 03_baseline_fail_prediction.ipynb
 │   ├── 04_feature_importance_and_monitoring.ipynb
-│   └── 05_temporal_validation.ipynb
+│   ├── 05_temporal_validation.ipynb
+│   └── 06_feature_budget_efficiency.ipynb
 ├── reports/
 │   └── step1_summary.csv
 ├── src/
 │   ├── secom_analysis.py
 │   ├── modeling.py
 │   ├── interpretation.py
-│   └── temporal_validation.py
+│   ├── temporal_validation.py
+│   └── feature_budget.py
 ├── .gitignore
 ├── README.md
 └── requirements.txt
@@ -54,7 +56,7 @@ pip install -r requirements.txt
 jupyter lab
 ```
 
-노트북은 `00` → `01` → `02` → `03` → `04` → `05` 순서로 실행합니다. 데이터 품질 진단, Fail 패턴 EDA, baseline 예측, feature 근거 교차검증, 모니터링 후보 생성, 시간순 안정성 검증 순서입니다.
+노트북은 `00` → `01` → `02` → `03` → `04` → `05` → `06` 순서로 실행합니다. 데이터 품질 진단, Fail 패턴 EDA, baseline 예측, feature 근거 교차검증, 모니터링 후보 생성, 시간순 안정성 검증, feature budget 효율 분석 순서입니다.
 
 ## Step 1. Data Quality Check Result
 
@@ -154,6 +156,31 @@ timestamp 기준 앞 80%를 Train, 뒤 20%를 미래 기간 Test로 분리했습
 시간순 threshold `0.04`는 미래 Fail 17건 중 16건을 검출했지만 Pass 297건 중 261건을 경보로 분류했습니다. 반면 Step 3의 threshold `0.06`을 그대로 적용하면 False Alarm은 감소하지만 Fail 6건을 놓쳤습니다. 또한 시간순 Test PR-AUC `0.097`은 무작위 stratified Test의 `0.200`보다 크게 낮았습니다.
 
 따라서 현재 모델은 시간 변화에 안정적인 자동 판정 모델로 보기 어렵습니다. 포트폴리오에서는 높은 Recall만 강조하지 않고, random split과 temporal split의 차이, threshold 불안정성, drift 모니터링과 rolling backtest 필요성을 핵심 결론으로 제시합니다.
+
+## Step 6. Top-10 Feature Budget Efficiency
+
+원본 590개 feature 중 Step 1 품질 기준을 통과한 446개를 대상으로, Step 4 통합 근거 순위 상위 10개를 누적 적용했습니다.
+
+| 순위 | Feature | 누적 CV PR-AUC | Temporal PR-AUC | 평균 토큰/샘플 |
+|---:|---|---:|---:|---:|
+| 1 | `feature_59` | 0.1064 | 0.0535 | 9.90 |
+| 2 | `feature_129` | 0.1300 | 0.0557 | 18.49 |
+| 3 | `feature_125` | 0.1502 | 0.0744 | 26.76 |
+| 4 | `feature_205` | 0.1913 | 0.0699 | 34.75 |
+| 5 | `feature_519` | 0.1908 | 0.0782 | 42.33 |
+| 6 | `feature_477` | 0.2107 | 0.0861 | 51.22 |
+| 7 | `feature_247` | 0.2065 | 0.0922 | 58.80 |
+| 8 | `feature_130` | 0.2107 | 0.1293 | 67.67 |
+| 9 | `feature_33` | **0.2446** | 0.1553 | 76.56 |
+| 10 | `feature_452` | 0.2444 | **0.1615** | 85.46 |
+
+토큰량은 feature 수에 거의 완전 선형으로 증가했습니다(R² 0.9996). CV PR-AUC도 전반적으로 상승 추세였지만(R² 0.9174), 5·7·10개 지점에서 정체 또는 소폭 하락해 엄밀한 단조 선형 관계는 아니었습니다. 학습시간(R² 0.1446)과 추론시간(R² 0.0008)은 feature 수와 선형 관계가 확인되지 않았으며, 이 작은 표에서는 tree 구조와 실행환경 변동의 영향이 더 컸습니다.
+
+평균 CV PR-AUC 최고점과 one-standard-error rule은 모두 상위 9개를 선택했습니다. 10번째 feature를 추가하면 샘플당 토큰이 76.56에서 85.46으로 증가하고 전체 1,567개 입력에서는 119,963에서 133,908 토큰으로 늘지만 CV PR-AUC는 개선되지 않았습니다. 따라서 현재 조건의 공식 효율 optimum은 상위 9개입니다. 다만 Temporal PR-AUC는 10개에서 0.0062 높았으므로 미래 안정성을 최우선으로 할 경우 10개도 후보이며, 이 차이는 추가 rolling backtest로 확인해야 합니다.
+
+Random Forest 자체는 LLM 토큰을 사용하지 않습니다. 위 토큰량은 선택 feature를 소수점 6자리 compact JSON으로 직렬화하고 `cl100k_base` tokenizer로 측정한 feature-value 입력량이며, system prompt 같은 고정 overhead는 제외했습니다.
+
+![Top-10 feature budget efficiency](reports/feature_budget_efficiency.png)
 
 ## 해석상 주의점
 

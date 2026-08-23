@@ -133,7 +133,37 @@ timestamp 기준 앞 80%를 Train, 뒤 20%를 미래 Test로 분리했다.
 
 시간순 Test PR-AUC는 무작위 Test의 0.200보다 크게 낮았다. 높은 Recall을 유지하려면 대부분의 Pass를 경보로 처리해야 했다. 이는 class 비율과 feature 분포 변화에 따라 threshold와 모델 성능이 불안정하다는 의미다.
 
-## 9. Quality Monitoring Proposal
+## 9. Step 6 — Top-10 Feature Budget Efficiency
+
+원본 590개 feature 중 품질 기준을 통과한 446개를 대상으로 Step 4 통합 근거 상위 10개를 누적 적용해 Balanced Random Forest의 성능과 비용을 비교했다.
+
+상위 순위는 다음과 같다.
+
+```text
+1 feature_59   2 feature_129  3 feature_125  4 feature_205  5 feature_519
+6 feature_477  7 feature_247  8 feature_130  9 feature_33  10 feature_452
+```
+
+| 누적 feature 수 | CV PR-AUC | Temporal PR-AUC | Fit 시간/fold | 평균 토큰/샘플 |
+|---:|---:|---:|---:|---:|
+| 1 | 0.1064 | 0.0535 | 2.383초 | 9.90 |
+| 2 | 0.1300 | 0.0557 | 1.884초 | 18.49 |
+| 3 | 0.1502 | 0.0744 | 1.556초 | 26.76 |
+| 4 | 0.1913 | 0.0699 | 2.227초 | 34.75 |
+| 5 | 0.1908 | 0.0782 | 1.849초 | 42.33 |
+| 6 | 0.2107 | 0.0861 | 1.818초 | 51.22 |
+| 7 | 0.2065 | 0.0922 | 1.990초 | 58.80 |
+| 8 | 0.2107 | 0.1293 | 1.586초 | 67.67 |
+| 9 | **0.2446** | 0.1553 | 1.964초 | 76.56 |
+| 10 | 0.2444 | **0.1615** | 1.798초 | 85.46 |
+
+토큰량은 feature 수에 거의 완전 선형으로 증가했다(R² 0.9996). CV PR-AUC는 전체적인 선형 상승 추세가 강했지만(R² 0.9174), 5·7·10개 구간에서 성능이 정체 또는 하락해 단조 선형 관계는 아니었다. 학습시간과 추론시간은 feature 수와 선형 관계가 없었다. 작은 feature 집합에서는 tree 분기 구조와 시스템 변동이 feature 수 자체보다 실행시간에 더 큰 영향을 준 것으로 해석한다.
+
+평균 CV PR-AUC 최고점과 one-standard-error rule 모두 9개 feature를 선택했다. 10번째 `feature_452`를 추가하면 전체 데이터 입력량이 119,963에서 133,908 토큰으로 11.6% 증가하지만 CV PR-AUC는 0.24457에서 0.24437로 소폭 감소했다. 따라서 CV 성능과 토큰 효율을 함께 고려한 공식 optimum은 9개다. Temporal PR-AUC는 10개에서 0.0062 높으므로 미래 안정성을 중시한다면 추가 rolling backtest가 필요하다.
+
+Random Forest는 실제 LLM 토큰을 소비하지 않는다. 토큰값은 각 샘플의 feature-value를 소수점 6자리 compact JSON으로 직렬화하고 `cl100k_base` tokenizer로 계산한 입력 footprint이며, 고정 prompt overhead는 제외했다.
+
+## 10. Quality Monitoring Proposal
 
 현재 결과를 실제 업무에 적용한다면 다음 단계의 스크리닝 구조가 적절하다.
 
@@ -144,7 +174,7 @@ timestamp 기준 앞 80%를 Train, 뒤 20%를 미래 Test로 분리했다.
 5. threshold는 놓친 Fail 비용과 확인 검사 비용을 반영해 승인한다.
 6. rolling backtest를 통해 재학습 및 threshold 재조정 주기를 결정한다.
 
-## 10. Limitations
+## 11. Limitations
 
 - feature 비식별화로 물리적 원인을 확정할 수 없다.
 - Fail 표본이 104개뿐이라 성능과 중요도 추정의 분산이 크다.
@@ -154,13 +184,13 @@ timestamp 기준 앞 80%를 Train, 뒤 20%를 미래 Test로 분리했다.
 - 실제 장비, lot, wafer, 공정 step 단위 group 정보가 없어 group leakage를 검증할 수 없다.
 - 후보 monitoring limit은 실제 spec이나 통계적 관리한계가 아니다.
 
-## 11. Conclusion
+## 12. Conclusion
 
 이 프로젝트의 핵심 성과는 높은 Accuracy를 만드는 것이 아니라 품질 데이터의 현실적인 제약을 확인하고 Fail 검출과 False Alarm 사이의 trade-off를 정량화한 것이다.
 
 모델은 무작위 Test에서 Fail 21건 중 18건을 검출했지만 False Alarm 157건을 발생시켰다. 시간순 Test에서는 성능이 더 낮아졌고, Recall 94.12%를 확보하기 위해 False Alarm 261건을 허용해야 했다. 따라서 현재 결과는 자동 판정 모델이 아니라 추가 확인 검사를 지원하는 위험 스크리닝과 원인 후보 우선순위화 도구로 해석하는 것이 타당하다.
 
-## 12. Interview Talking Points
+## 13. Interview Talking Points
 
 ### 60-second summary
 
