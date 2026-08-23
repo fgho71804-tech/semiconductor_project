@@ -42,6 +42,7 @@ def cumulative_feature_budget_experiment(
     n_repeats: int = 3,
     random_state: int = 42,
     inference_repeats: int = 30,
+    min_feature_count: int = 1,
 ) -> pd.DataFrame:
     """Evaluate cumulative top-k features with repeated CV and temporal holdout."""
     order = timestamps.sort_values(kind="stable").index
@@ -54,7 +55,10 @@ def cumulative_feature_budget_experiment(
     fold_count = n_splits * n_repeats
     rows = []
 
-    for feature_count in range(1, len(ranked_features) + 1):
+    if not 1 <= min_feature_count <= len(ranked_features):
+        raise ValueError("min_feature_count must be between 1 and ranked feature count")
+
+    for feature_count in range(min_feature_count, len(ranked_features) + 1):
         features = list(ranked_features[:feature_count])
         X_subset = X[features]
         scores = cross_validate(

@@ -163,7 +163,28 @@ timestamp 기준 앞 80%를 Train, 뒤 20%를 미래 Test로 분리했다.
 
 Random Forest는 실제 LLM 토큰을 소비하지 않는다. 토큰값은 각 샘플의 feature-value를 소수점 6자리 compact JSON으로 직렬화하고 `cl100k_base` tokenizer로 계산한 입력 footprint이며, 고정 prompt overhead는 제외했다.
 
-## 10. Quality Monitoring Proposal
+## 10. Step 7 — Top-20 Extension Check
+
+상위 feature를 20개까지 확장했을 때 Step 6 결론이 유지되는지 동일 조건으로 검증했다.
+
+| 비교 항목 | 결과 |
+|---|---:|
+| 최고 평균 CV PR-AUC | 9개, 0.24457 |
+| One-standard-error 최소 조합 | 9개 |
+| 20개 CV PR-AUC | 0.23499 |
+| 최고 Temporal PR-AUC | 11개, 0.21345 |
+| 9개 토큰/샘플 | 76.56 |
+| 20개 토큰/샘플 | 172.68 |
+
+**Optimum 결론은 유지됐다.** 20개 조합은 9개보다 토큰을 125.6% 더 사용하면서 CV PR-AUC는 0.0096 낮았다. 9개 이후 어떤 조합도 9개의 평균 CV PR-AUC를 넘지 못했으며 one-standard-error rule도 9개를 선택했다.
+
+**선형성 결론은 유지되지 않았다.** 1~10개 구간의 CV PR-AUC 선형 R²는 0.917이었으나 1~20 전체에서는 0.642로 낮아졌다. Temporal PR-AUC의 R²도 0.307이었다. 성능은 9개 부근에서 포화된 뒤 추가 feature에 따라 불규칙하게 변했다. 토큰량만 R² 0.9997로 계속 선형 증가했다.
+
+Temporal Test만 보면 11번째 `feature_510`을 포함한 조합이 최고였지만, 같은 조합의 CV PR-AUC는 0.21836으로 낮아졌다. 이는 `feature_510`이 특정 미래 구간에는 유용할 수 있지만 일반화가 불안정함을 뜻한다. 운영 후보는 9개 기본안과 11개 temporal 후보안을 rolling backtest로 비교하는 것이 적절하다.
+
+단, feature 순위 자체가 전체 데이터를 이용한 탐색 결과에서 파생됐으므로 현재 절대 성능은 낙관적일 수 있다. 실제 일반화 성능을 추정하려면 각 CV Train fold 내부에서 feature 선택을 다시 수행하는 nested feature selection이 필요하다.
+
+## 11. Quality Monitoring Proposal
 
 현재 결과를 실제 업무에 적용한다면 다음 단계의 스크리닝 구조가 적절하다.
 
@@ -174,7 +195,7 @@ Random Forest는 실제 LLM 토큰을 소비하지 않는다. 토큰값은 각 �
 5. threshold는 놓친 Fail 비용과 확인 검사 비용을 반영해 승인한다.
 6. rolling backtest를 통해 재학습 및 threshold 재조정 주기를 결정한다.
 
-## 11. Limitations
+## 12. Limitations
 
 - feature 비식별화로 물리적 원인을 확정할 수 없다.
 - Fail 표본이 104개뿐이라 성능과 중요도 추정의 분산이 크다.
@@ -184,13 +205,13 @@ Random Forest는 실제 LLM 토큰을 소비하지 않는다. 토큰값은 각 �
 - 실제 장비, lot, wafer, 공정 step 단위 group 정보가 없어 group leakage를 검증할 수 없다.
 - 후보 monitoring limit은 실제 spec이나 통계적 관리한계가 아니다.
 
-## 12. Conclusion
+## 13. Conclusion
 
 이 프로젝트의 핵심 성과는 높은 Accuracy를 만드는 것이 아니라 품질 데이터의 현실적인 제약을 확인하고 Fail 검출과 False Alarm 사이의 trade-off를 정량화한 것이다.
 
 모델은 무작위 Test에서 Fail 21건 중 18건을 검출했지만 False Alarm 157건을 발생시켰다. 시간순 Test에서는 성능이 더 낮아졌고, Recall 94.12%를 확보하기 위해 False Alarm 261건을 허용해야 했다. 따라서 현재 결과는 자동 판정 모델이 아니라 추가 확인 검사를 지원하는 위험 스크리닝과 원인 후보 우선순위화 도구로 해석하는 것이 타당하다.
 
-## 13. Interview Talking Points
+## 14. Interview Talking Points
 
 ### 60-second summary
 

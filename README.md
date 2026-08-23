@@ -33,7 +33,8 @@
 │   ├── 03_baseline_fail_prediction.ipynb
 │   ├── 04_feature_importance_and_monitoring.ipynb
 │   ├── 05_temporal_validation.ipynb
-│   └── 06_feature_budget_efficiency.ipynb
+│   ├── 06_feature_budget_efficiency.ipynb
+│   └── 07_feature_budget_top20_extension.ipynb
 ├── reports/
 │   └── step1_summary.csv
 ├── src/
@@ -56,7 +57,7 @@ pip install -r requirements.txt
 jupyter lab
 ```
 
-노트북은 `00` → `01` → `02` → `03` → `04` → `05` → `06` 순서로 실행합니다. 데이터 품질 진단, Fail 패턴 EDA, baseline 예측, feature 근거 교차검증, 모니터링 후보 생성, 시간순 안정성 검증, feature budget 효율 분석 순서입니다.
+노트북은 `00` → `01` → `02` → `03` → `04` → `05` → `06` → `07` 순서로 실행합니다. 데이터 품질 진단, Fail 패턴 EDA, baseline 예측, feature 근거 교차검증, 모니터링 후보 생성, 시간순 안정성 검증, feature budget 효율 분석, 상위 20개 확장 검증 순서입니다.
 
 ## Step 1. Data Quality Check Result
 
@@ -181,6 +182,25 @@ timestamp 기준 앞 80%를 Train, 뒤 20%를 미래 기간 Test로 분리했습
 Random Forest 자체는 LLM 토큰을 사용하지 않습니다. 위 토큰량은 선택 feature를 소수점 6자리 compact JSON으로 직렬화하고 `cl100k_base` tokenizer로 측정한 feature-value 입력량이며, system prompt 같은 고정 overhead는 제외했습니다.
 
 ![Top-10 feature budget efficiency](reports/feature_budget_efficiency.png)
+
+## Step 7. Top-20 Extension Check
+
+동일한 순위 기준을 20개까지 확장한 결과, **CV 성능·토큰 효율 기준 optimum 9개는 유지됐지만 선형성 결론은 유지되지 않았습니다.**
+
+- 평균 CV PR-AUC 최고점: 9개, `0.24457`
+- one-standard-error 최소 조합: 9개
+- 20개 CV PR-AUC: `0.23499`
+- Temporal PR-AUC 최고점: 11개, `0.21345`
+- 20개 평균 토큰/샘플: `172.68`
+- 9개 평균 토큰/샘플: `76.56`
+
+1~10개 구간의 CV PR-AUC 선형 R²는 0.917이었지만 1~20 전체에서는 0.642로 낮아졌습니다. 9개 이후 성능이 포화되고 오르내리므로 feature 수와 성능의 관계를 선형으로 일반화할 수 없습니다. 반면 토큰량의 R²는 0.9997로 계속 선형 증가했습니다.
+
+20개 조합은 9개 대비 토큰이 125.6% 많지만 CV PR-AUC는 0.0096 낮았습니다. 따라서 일반적인 CV 성능과 입력 비용 기준에서는 9개 결론이 더 강해졌습니다. 다만 11번째 `feature_510`을 포함했을 때 Temporal PR-AUC가 가장 높았으므로 시간순 운영 안정성이 목적이라면 9개와 11개를 rolling backtest로 비교해야 합니다.
+
+이 순위는 전체 데이터를 이용한 탐색적 통계·중요도 결과에서 파생됐으므로 절대 성능은 낙관적일 수 있습니다. 실제 배포 성능 추정에서는 각 fold의 Train 데이터 안에서 feature 순위를 다시 계산하는 nested feature selection이 필요합니다.
+
+![Top-20 feature budget extension](reports/feature_budget_efficiency_top20.png)
 
 ## 해석상 주의점
 
